@@ -19,13 +19,13 @@ def main():
     public_key = private_key.public_key
     
     # Save our public key for Rust to use
-    with open("python_public.key", "wb") as f:
+    with open("python_key.pub", "wb") as f:
         f.write(public_key.encode())
     
     print("Python public key (Base64):", base64.b64encode(bytes(public_key)).decode())
     
     # Check if Rust's public key exists
-    if not os.path.exists("rust_public.key"):
+    if not os.path.exists("rust_key.pub"):
         print("\nWaiting for Rust's public key...")
         print("Please run: cargo run")
         print("Then press Enter to continue...")
@@ -33,10 +33,10 @@ def main():
     
     # Read Rust's public key
     try:
-        with open("rust_public.key", "rb") as f:
+        with open("rust_key.pub", "rb") as f:
             rust_public_key = PublicKey(f.read())
     except FileNotFoundError:
-        print("Error: rust_public.key not found. Please run the Rust program first.")
+        print("Error: rust_key.pub not found. Please run the Rust program first.")
         return
     
     # Create a shared secret using Diffie-Hellman

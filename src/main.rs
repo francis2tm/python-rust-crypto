@@ -14,7 +14,7 @@ fn main() {
     let public_key = PublicKey::from(&private_key);
 
     // Save our public key for Python to use
-    fs::write("rust_public.key", public_key.as_bytes()).expect("Failed to write public key");
+    fs::write("rust_key.pub", public_key.as_bytes()).expect("Failed to write public key");
 
     println!(
         "Rust public key (Base64): {}",
@@ -30,7 +30,7 @@ fn main() {
 
     // Read Python's public key
     let python_public_bytes =
-        fs::read("python_public.key").expect("Failed to read Python's public key");
+        fs::read("python_key.pub").expect("Failed to read Python's public key");
     let python_public =
         PublicKey::from(<[u8; 32]>::try_from(python_public_bytes.as_slice()).unwrap());
 

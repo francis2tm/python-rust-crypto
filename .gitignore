@@ -1,1 +1,6 @@
 /target
+
+# generated files
+python_key.pub
+rust_key.pub
+encrypted.bin
