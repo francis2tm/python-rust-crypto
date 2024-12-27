@@ -1,20 +1,34 @@
-use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
-use chacha20poly1305::{
+use aes_gcm::{
     aead::{Aead, KeyInit},
-    ChaCha20Poly1305,
+    Aes256Gcm,
 };
+use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
 use serde_json::Value;
 use std::fs;
 use std::path::Path;
 use x25519_dalek::{PublicKey, StaticSecret};
 
 fn main() {
-    // Generate our keypair
-    let private_key = StaticSecret::random_from_rng(rand::thread_rng());
-    let public_key = PublicKey::from(&private_key);
+    // Only generate new keypair if the public key doesn't exist
+    let (private_key, public_key) = if !Path::new("rust_key.pub").exists() {
+        let private_key = StaticSecret::random_from_rng(rand::thread_rng());
+        let public_key = PublicKey::from(&private_key);
 
-    // Save our public key for Python to use
-    fs::write("rust_key.pub", public_key.as_bytes()).expect("Failed to write public key");
+        // Save our public key for Python to use
+        fs::write("rust_key.pub", public_key.as_bytes()).expect("Failed to write public key");
+
+        // Save our private key
+        fs::write("rust_key.private", private_key.to_bytes()).expect("Failed to write private key");
+
+        (private_key, public_key)
+    } else {
+        // Read existing private key (you'll need to save this)
+        let private_key_bytes = fs::read("rust_key.private").expect("Failed to read private key");
+        let private_key =
+            StaticSecret::from(<[u8; 32]>::try_from(private_key_bytes.as_slice()).unwrap());
+        let public_key = PublicKey::from(&private_key);
+        (private_key, public_key)
+    };
 
     println!(
         "Rust public key (Base64): {}",
@@ -40,18 +54,22 @@ fn main() {
     // Read the encrypted data
     let encrypted_data = fs::read("encrypted.bin").expect("Failed to read encrypted data");
 
-    // In NaCl's Box, the structure is: nonce (24 bytes) || encrypted_data
-    let nonce = &encrypted_data[..24];
-    let ciphertext = &encrypted_data[24..];
+    // In AES-GCM, we'll use a 12-byte nonce
+    let nonce = &encrypted_data[..12];
+    let ciphertext = &encrypted_data[12..];
 
     // Create cipher instance with the first 32 bytes of the shared secret
-    let cipher = ChaCha20Poly1305::new_from_slice(&shared_secret.as_bytes()[..32])
+    let cipher = Aes256Gcm::new_from_slice(&shared_secret.as_bytes()[..32])
         .expect("Failed to create cipher");
 
     // Decrypt the message
-    let decrypted = cipher
-        .decrypt(nonce.into(), ciphertext)
-        .expect("Failed to decrypt");
+    let decrypted = match cipher.decrypt(nonce.into(), ciphertext) {
+        Ok(data) => data,
+        Err(e) => {
+            println!("Decryption failed: {}", e);
+            return;
+        }
+    };
 
     // Parse JSON
     let json_str = String::from_utf8(decrypted).expect("Failed to decode UTF-8");
