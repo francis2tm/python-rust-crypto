@@ -3,10 +3,20 @@ use aes_gcm::{
     Aes256Gcm,
 };
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
+use hkdf::Hkdf;
 use serde_json::Value;
+use sha2::Sha256;
 use std::fs;
 use std::path::Path;
 use x25519_dalek::{PublicKey, StaticSecret};
+
+fn derive_key(shared_secret: &[u8], salt: &[u8]) -> [u8; 32] {
+    let hk = Hkdf::<Sha256>::new(Some(salt), shared_secret);
+    let mut okm = [0u8; 32];
+    hk.expand(b"encryption-key", &mut okm)
+        .expect("HKDF expansion failed");
+    okm
+}
 
 fn main() {
     // Only generate new keypair if the public key doesn't exist
@@ -54,13 +64,16 @@ fn main() {
     // Read the encrypted data
     let encrypted_data = fs::read("encrypted.bin").expect("Failed to read encrypted data");
 
-    // In AES-GCM, we'll use a 12-byte nonce
-    let nonce = &encrypted_data[..12];
-    let ciphertext = &encrypted_data[12..];
+    // Extract salt (first 32 bytes), nonce (next 12 bytes), and ciphertext
+    let salt = &encrypted_data[..32];
+    let nonce = &encrypted_data[32..44];
+    let ciphertext = &encrypted_data[44..];
 
-    // Create cipher instance with the first 32 bytes of the shared secret
-    let cipher = Aes256Gcm::new_from_slice(&shared_secret.as_bytes()[..32])
-        .expect("Failed to create cipher");
+    // Derive the encryption key using HKDF
+    let encryption_key = derive_key(shared_secret.as_bytes(), salt);
+
+    // Create cipher instance with the derived key
+    let cipher = Aes256Gcm::new_from_slice(&encryption_key).expect("Failed to create cipher");
 
     // Decrypt the message
     let decrypted = match cipher.decrypt(nonce.into(), ciphertext) {

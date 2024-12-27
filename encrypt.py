@@ -3,6 +3,8 @@ import base64
 import os
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey, X25519PublicKey
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 import secrets
 
 # Sample JSON data
@@ -11,6 +13,16 @@ data = {
     "number": 42,
     "list": [1, 2, 3]
 }
+
+def derive_key(shared_secret: bytes, salt: bytes) -> bytes:
+    # Use HKDF to derive a key from the shared secret
+    hkdf = HKDF(
+        algorithm=hashes.SHA256(),
+        length=32,
+        salt=salt,
+        info=b"encryption-key",
+    )
+    return hkdf.derive(shared_secret)
 
 def main():
     # Generate our private key
@@ -41,11 +53,17 @@ def main():
         print("Error: rust_key.pub not found. Please run the Rust program first.")
         return
     
-    # Create a shared secret using Diffie-Hellman
+    # Generate a random 32-byte salt
+    salt = secrets.token_bytes(32)
+    
+    # Create shared secret using Diffie-Hellman
     shared_secret = private_key.exchange(rust_public_key)
     
-    # Create AES-GCM cipher with the first 32 bytes of the shared secret
-    cipher = AESGCM(shared_secret[:32])
+    # Derive the encryption key using HKDF
+    encryption_key = derive_key(shared_secret, salt)
+    
+    # Create AES-GCM cipher with the derived key
+    cipher = AESGCM(encryption_key)
     
     # Generate a random 12-byte nonce
     nonce = secrets.token_bytes(12)
@@ -56,8 +74,8 @@ def main():
     # Encrypt the message
     encrypted = cipher.encrypt(nonce, message, None)
     
-    # Combine nonce and encrypted data
-    full_message = nonce + encrypted
+    # Combine salt + nonce + encrypted data
+    full_message = salt + nonce + encrypted
     
     # Save the encrypted message
     with open("encrypted.bin", "wb") as f:
