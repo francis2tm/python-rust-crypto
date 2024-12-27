@@ -14,7 +14,7 @@ This project demonstrates secure communication between Python and Rust using X25
 
 ```bash
 git clone <repository-url>
-cd crypto-test
+cd python-rust-crypto
 ```
 
 2. Install Python dependencies:
