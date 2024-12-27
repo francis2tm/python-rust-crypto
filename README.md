@@ -23,13 +23,7 @@ cd crypto-test
 poetry install
 ```
 
-3. Build the Rust project:
-
-```bash
-cargo build
-```
-
-4. Run the demo:
+3. Run the demo:
 
 ```bash
 ./run.sh
@@ -85,7 +79,6 @@ Decrypted JSON data:
 
 ## Security Notes
 
-- This is a demonstration project and may need additional security measures for production use
 - The shared secret is derived using X25519 Diffie-Hellman key exchange
 - AES-GCM provides both confidentiality and authenticity
 - Temporary keys and encrypted data are automatically cleaned up after demonstration
