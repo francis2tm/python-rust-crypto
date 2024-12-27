@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "crypto-test"
+version = "0.1.0"
+description = "Python-Rust encryption demo"
+authors = ["User"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+pynacl = "^1.5.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
