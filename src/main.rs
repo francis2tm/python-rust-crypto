@@ -64,10 +64,10 @@ fn main() {
     // Read the encrypted data
     let encrypted_data = fs::read("encrypted.bin").expect("Failed to read encrypted data");
 
-    // Extract salt (first 32 bytes), nonce (next 12 bytes), and ciphertext
-    let salt = &encrypted_data[..32];
-    let nonce = &encrypted_data[32..44];
-    let ciphertext = &encrypted_data[44..];
+    // Extract salt (first 24 bytes), nonce (next 12 bytes), and ciphertext
+    let salt = &encrypted_data[..24];
+    let nonce = &encrypted_data[24..36];
+    let ciphertext = &encrypted_data[36..];
 
     // Derive the encryption key using HKDF
     let encryption_key = derive_key(shared_secret.as_bytes(), salt);

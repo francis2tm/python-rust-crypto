@@ -53,8 +53,8 @@ def main():
         print("Error: rust_key.pub not found. Please run the Rust program first.")
         return
     
-    # Generate a random 32-byte salt
-    salt = secrets.token_bytes(32)
+    # Generate a random 24-byte salt
+    salt = secrets.token_bytes(24)
     
     # Create shared secret using Diffie-Hellman
     shared_secret = private_key.exchange(rust_public_key)
