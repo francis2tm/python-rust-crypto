@@ -24,6 +24,11 @@ def derive_key(shared_secret: bytes, salt: bytes) -> bytes:
     )
     return hkdf.derive(shared_secret)
 
+def calculate_hash(data: bytes) -> bytes:
+    digest = hashes.Hash(hashes.SHA256())
+    digest.update(data)
+    return digest.finalize()
+
 def main():
     # Generate our private key
     private_key = X25519PrivateKey.generate()
@@ -70,6 +75,14 @@ def main():
     
     # Convert our data to bytes
     message = json.dumps(data).encode('utf-8')
+    
+    # Calculate message hash
+    message_hash = calculate_hash(message)
+    print("\nOriginal message hash (Base64):", base64.b64encode(message_hash).decode())
+    
+    # Save the hash for verification
+    with open("message.hash", "wb") as f:
+        f.write(message_hash)
     
     # Encrypt the message
     encrypted = cipher.encrypt(nonce, message, None)

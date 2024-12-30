@@ -2,7 +2,7 @@
 
 # Cleanup any existing files
 cleanup() {
-    rm -f python_key.pub rust_key.pub rust_key.private encrypted.bin
+    rm -f python_key.pub rust_key.pub rust_key.private encrypted.bin message.hash
 }
 
 # Cleanup at start

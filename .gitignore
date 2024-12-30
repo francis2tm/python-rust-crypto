@@ -5,3 +5,4 @@ python_key.pub
 rust_key.pub
 rust_key.private
 encrypted.bin
+message.hash

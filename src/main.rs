@@ -5,7 +5,7 @@ use aes_gcm::{
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
 use hkdf::Hkdf;
 use serde_json::Value;
-use sha2::Sha256;
+use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::Path;
 use x25519_dalek::{PublicKey, StaticSecret};
@@ -16,6 +16,12 @@ fn derive_key(shared_secret: &[u8], salt: &[u8]) -> [u8; 32] {
     hk.expand(b"encryption-key", &mut okm)
         .expect("HKDF expansion failed");
     okm
+}
+
+fn calculate_hash(data: &[u8]) -> Vec<u8> {
+    let mut hasher = Sha256::new();
+    hasher.update(data);
+    hasher.finalize().to_vec()
 }
 
 fn main() {
@@ -86,8 +92,35 @@ fn main() {
 
     // Parse JSON
     let json_str = String::from_utf8(decrypted).expect("Failed to decode UTF-8");
-    let json: Value = serde_json::from_str(&json_str).expect("Failed to parse JSON");
 
-    println!("\nDecrypted JSON data:");
-    println!("{}", serde_json::to_string_pretty(&json).unwrap());
+    // Calculate hash of decrypted data
+    let decrypted_hash = calculate_hash(json_str.as_bytes());
+
+    // Read original hash
+    let original_hash = fs::read("message.hash").expect("Failed to read message hash");
+
+    // Verify hash
+    if decrypted_hash == original_hash {
+        println!("\nHash verification: SUCCESS");
+        println!(
+            "Decrypted message hash (Base64): {}",
+            BASE64.encode(&decrypted_hash)
+        );
+
+        // Parse and display JSON
+        let json: Value = serde_json::from_str(&json_str).expect("Failed to parse JSON");
+        println!("\nDecrypted JSON data:");
+        println!("{}", serde_json::to_string_pretty(&json).unwrap());
+    } else {
+        println!("\nHash verification: FAILED");
+        println!(
+            "Original hash (Base64):   {}",
+            BASE64.encode(&original_hash)
+        );
+        println!(
+            "Decrypted hash (Base64):  {}",
+            BASE64.encode(&decrypted_hash)
+        );
+        println!("Message integrity check failed!");
+    }
 }
